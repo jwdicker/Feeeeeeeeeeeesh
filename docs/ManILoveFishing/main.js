@@ -12,22 +12,43 @@ llllll
  llll
   ll
 `,`
-BBB
+   G
+G GGG
+GGGGlG
+GGGGGG
+G GGG
+   G
+`,`
+   r
+r rrr
+rrrrlr
+rrrrrr
+r rrr
+   r
+`,`
+   P
+P PPP
+PPPPlP
+PPPPPP
+P PPP
+   P
 `
 ];
 
+// Global constants
 const G = {
 	WIDTH: 100,
-	HEIGHT: 150
+	HEIGHT: 150,
+
+  ROD_LENGTH: 7,
+
+  FISH_LEVELS: [70, 100, 130],
 };
 
 options = {
     viewSize: {x: G.WIDTH, y: G.HEIGHT}
 };
 
-/** @type {{angle: number, length: number, RodEnd: Vector}} */
-let Rod;
-const RodLength = 7;
 // Let bubbles be an array made of Bubble objects
 /**
  * @typedef {{
@@ -80,13 +101,36 @@ let clouds;
 let boat;
 let turnaround = 2.5;
 
+/** 
+ * @typedef {{
+ * angle: number,
+ * length: number, 
+ * RodEnd: Vector
+ * }} FishingRod 
+ */
+
+/** @type { FishingRod } */
+let Rod;
+
+/**
+ * @typedef {{
+ * pos: Vector,
+ * speed: number,
+ * mirrored: 1 | -1,
+ * sprite: string
+ * }} Fish
+ */
+
+/** @type { Fish[] } */
+let feesh;
+
 function update() {
   if (!ticks) {
     // Initialize objects
     boat = {
         pos: vec(10, 41)
     };
-    Rod = { angle: 0, length: RodLength, RodEnd: vec(40, 20)};
+    Rod = { angle: 0, length: G.ROD_LENGTH, RodEnd: vec(40, 20)};
   
     bubbles = times(20, () => {
         const posX = rnd(0, G.WIDTH);
@@ -114,10 +158,21 @@ function update() {
           speed: rnd(0.1, .2)
       };
     });
+
+    feesh = [];
+    feesh.push(makeFish("b", 0));
+    feesh.push(makeFish("c", 1));
+    feesh.push(makeFish("d", 2));
   }
   
   // Draw the scene
   drawScene();
+
+  // Draw the fish
+  feesh.forEach((f) => {
+    color("black");
+    char(f.sprite, f.pos.x, f.pos.y, {mirror: {x: f.mirrored}});
+  });
   
   //Input
   if (input.isPressed) {
@@ -125,7 +180,7 @@ function update() {
     Rod.length += 1.5;
   } else {
     //Wire Retract
-    Rod.length += (RodLength - Rod.length) * 0.5;
+    Rod.length += (G.ROD_LENGTH - Rod.length) * 0.5;
     //Wire Swining
     if(Rod.angle < turnaround) {
       turnaround = 2.5;
@@ -140,9 +195,9 @@ function update() {
     }
   }
   color("light_red");
+
   //Draw rodwire
   line(Rod.RodEnd, vec(Rod.RodEnd).addWithAngle(Rod.angle, Rod.length), 2);
-
 }
 
 // Draw all scene (non-gameplay) components
@@ -193,4 +248,19 @@ function drawScene() {
   // Draw a boat
   color("black");
   char("a", boat.pos);
+}
+
+/**
+ * Creates a fish
+ * @param {string} sprite 
+ * @param {number} level 
+ * @returns { Fish }
+ */
+function makeFish(sprite, level) {
+  return {
+    pos: vec(G.WIDTH / 2, G.FISH_LEVELS[level]),
+    speed: level,
+    mirrored: (rnd() < 0.5) ? -1 : 1,
+    sprite: sprite
+  }
 }
