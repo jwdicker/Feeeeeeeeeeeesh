@@ -79,6 +79,7 @@ let clouds;
  */
 let boat;
 let turnaround = 2.5;
+
 function update() {
   if (!ticks) {
     // Initialize objects
@@ -103,7 +104,7 @@ function update() {
           pos: vec(posX, posY),
           speed: rnd(0.2, .4)
       };
-  });
+    });
 
     clouds = times(3, () => {
       const posX = rnd(0, G.WIDTH);
@@ -114,16 +115,52 @@ function update() {
       };
     });
   }
+  
+  // Draw the scene
+  drawScene();
+  
+  //Input
+  if (input.isPressed) {
+    //Wire Extend
+    Rod.length += 1.5;
+  } else {
+    //Wire Retract
+    Rod.length += (RodLength - Rod.length) * 0.5;
+    //Wire Swining
+    if(Rod.angle < turnaround) {
+      turnaround = 2.5;
+      Rod.angle += 0.03;
+    }
+    else {
+      turnaround = .3;
+      Rod.angle -= 0.03;
+    }
+    if(Rod.angle >= 2.5 || Rod.angle <= .3) {
+      Rod.length = 0;
+    }
+  }
+  color("light_red");
+  //Draw rodwire
+  line(Rod.RodEnd, vec(Rod.RodEnd).addWithAngle(Rod.angle, Rod.length), 2);
+
+}
+
+// Draw all scene (non-gameplay) components
+function drawScene() {
   //Draw Sky
   color("light_blue");
   line(0, 0, 100, 0, 107);
+
   //Draw Sun
   color("yellow");
+
   //Draw Clouds
   box(70, 7, 7);
+
   // Draw water
   color("blue");
   line(0, 97, 100, 97, 107);
+
   //Spawn each bubble
   bubbles.forEach((b) => {
     b.pos.x += b.speed;
@@ -131,7 +168,8 @@ function update() {
     b.pos.wrap(0, G.WIDTH, 0, G.HEIGHT);
     color("light_blue");
     box(b.pos, 1, 1);
-    });
+  });
+
   //spawn each stream
   stream.forEach((b) => {
     b.pos.x += b.speed;
@@ -139,7 +177,7 @@ function update() {
     b.pos.wrap(0, 100, 45, 50);
     color("white");
     box(b.pos, 3, 1);
-    });
+  });
 
   clouds.forEach((b) => {
     b.pos.x += b.speed;
@@ -147,38 +185,12 @@ function update() {
     b.pos.wrap(0, 100, 0, 20);
     color("white");
     box(b.pos, 8 , 3);
-    });
+  });
 
-
-    //draw rod handle
-    color("light_yellow");
-    line(12, 40, 40, 20, 2);
-    // Draw a boat
-    color("black");
-    char("a", boat.pos);
-  
-    //Input
-    if (input.isPressed) {
-      //Wire Extend
-      Rod.length += 1.5;
-    } else {
-      //Wire Retract
-      Rod.length += (RodLength - Rod.length) * 0.5;
-      //Wire Swining
-      if(Rod.angle < turnaround) {
-        turnaround = 2.5;
-        Rod.angle += 0.03;
-      }
-      else {
-        turnaround = .3;
-        Rod.angle -= 0.03;
-      }
-      if(Rod.angle >= 2.5 || Rod.angle <= .3) {
-        Rod.length = 0;
-      }
-    }
-    color("light_red");
-    //Draw rodwire
-    line(Rod.RodEnd, vec(Rod.RodEnd).addWithAngle(Rod.angle, Rod.length), 2);
-
+  //draw rod handle
+  color("light_yellow");
+  line(12, 40, 40, 20, 2);
+  // Draw a boat
+  color("black");
+  char("a", boat.pos);
 }
