@@ -43,6 +43,7 @@ const G = {
   ROD_LENGTH: 7,
 
   FISH_LEVELS: [70, 100, 130],
+  FISH_MAX_DELTA_X: 40,
 };
 
 options = {
@@ -168,8 +169,25 @@ function update() {
   // Draw the scene
   drawScene();
 
-  // Draw the fish
+  // Move and draw the fish
   feesh.forEach((f) => {
+
+    // Move the fish
+    if(f.mirrored == -1) {
+      f.pos.x -= f.speed;
+      
+      if(f.pos.x < (G.WIDTH / 2 - G.FISH_MAX_DELTA_X)) {
+        f.mirrored = 1
+      }
+    } else {
+      f.pos.x += f.speed;
+
+      if(f.pos.x > (G.WIDTH / 2 + G.FISH_MAX_DELTA_X)) {
+        f.mirrored = -1
+      }
+    }
+
+    // Draw the fish
     color("black");
     char(f.sprite, f.pos.x, f.pos.y, {mirror: {x: f.mirrored}});
   });
@@ -259,7 +277,7 @@ function drawScene() {
 function makeFish(sprite, level) {
   return {
     pos: vec(G.WIDTH / 2, G.FISH_LEVELS[level]),
-    speed: level,
+    speed: (level + 1) / 4,
     mirrored: (rnd() < 0.5) ? -1 : 1,
     sprite: sprite
   }
