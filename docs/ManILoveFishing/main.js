@@ -1,6 +1,9 @@
 title = "I Love Fishing";
 
 description = `
+Hold to cast,
+release to
+reel in
 `;
 
 characters = [
