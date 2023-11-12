@@ -41,6 +41,8 @@ const G = {
 	HEIGHT: 150,
 
   ROD_LENGTH: 7,
+  ROD_EXTEND_SPEED: 1.5,
+  ROD_RETRACT_SPEED: 0.5,
 
   FISH_LEVELS: [70, 100, 130],
   FISH_MAX_DELTA_X: 40,
@@ -106,12 +108,15 @@ let turnaround = 2.5;
  * @typedef {{
  * angle: number,
  * length: number, 
- * RodEnd: Vector
+ * end: Vector,
+ * hook: Vector,
+ * hasFish: boolean,
+ * heldFish: Fish?
  * }} FishingRod 
  */
 
 /** @type { FishingRod } */
-let Rod;
+let rod;
 
 /**
  * @typedef {{
@@ -126,12 +131,21 @@ let Rod;
 let feesh;
 
 function update() {
+  // Init
   if (!ticks) {
     // Initialize objects
     boat = {
         pos: vec(10, 41)
     };
-    Rod = { angle: 0, length: G.ROD_LENGTH, RodEnd: vec(40, 20)};
+
+    rod = {
+      angle: 0,
+      length: G.ROD_LENGTH,
+      end: vec(40, 20),
+      hook: vec(40, 20).addWithAngle(0, G.ROD_LENGTH),
+      hasFish: false,
+      heldFish: null
+    }
   
     bubbles = times(20, () => {
         const posX = rnd(0, G.WIDTH);
@@ -172,18 +186,26 @@ function update() {
   // Move and draw the fish
   feesh.forEach((f) => {
 
-    // Move the fish
-    if(f.mirrored == -1) {
-      f.pos.x -= f.speed;
-      
-      if(f.pos.x < (G.WIDTH / 2 - G.FISH_MAX_DELTA_X)) {
-        f.mirrored = 1
-      }
+    if(f === rod.heldFish) {
+      // Fish is caught
+      // Set fish to the end of the rod
+      f.pos.x = rod.hook.x;
+      f.pos.y = rod.hook.y;
     } else {
-      f.pos.x += f.speed;
+      // Fish is free
+      // Move the fish
+      if(f.mirrored == -1) {
+        f.pos.x -= f.speed;
+        
+        if(f.pos.x < (G.WIDTH / 2 - G.FISH_MAX_DELTA_X)) {
+          f.mirrored = 1
+        }
+      } else {
+        f.pos.x += f.speed;
 
-      if(f.pos.x > (G.WIDTH / 2 + G.FISH_MAX_DELTA_X)) {
-        f.mirrored = -1
+        if(f.pos.x > (G.WIDTH / 2 + G.FISH_MAX_DELTA_X)) {
+          f.mirrored = -1
+        }
       }
     }
 
@@ -193,29 +215,58 @@ function update() {
   });
   
   //Input
-  if (input.isPressed) {
-    //Wire Extend
-    Rod.length += 1.5;
-  } else {
-    //Wire Retract
-    Rod.length += (G.ROD_LENGTH - Rod.length) * 0.5;
-    //Wire Swining
-    if(Rod.angle < turnaround) {
-      turnaround = 2.5;
-      Rod.angle += 0.03;
-    }
-    else {
-      turnaround = .3;
-      Rod.angle -= 0.03;
-    }
-    if(Rod.angle >= 2.5 || Rod.angle <= .3) {
-      Rod.length = 0;
-    }
-  }
-  color("light_red");
+  rod.hook = vec(rod.end).addWithAngle(rod.angle, rod.length);
+  if(rod.hasFish) {
+    // In fish get mode. Hold to stop in, release to reel in
 
-  //Draw rodwire
-  line(Rod.RodEnd, vec(Rod.RodEnd).addWithAngle(Rod.angle, Rod.length), 2);
+    if(!input.isPressed){
+      // Wire retract
+      rod.length -= G.ROD_RETRACT_SPEED
+    }
+
+    // Check when wire is retracted
+    if(rod.length <= G.ROD_LENGTH) {
+        // Award the appropriate points
+        if(rod.heldFish != null) {
+          score += (rod.heldFish.speed * 8);
+        }
+
+        // Reset the line
+        rod.heldFish.pos = vec(G.WIDTH / 2, G.FISH_LEVELS[(rod.heldFish.speed * 8) - 1]);
+        rod.heldFish = null;
+        rod.hasFish = false;
+    }
+
+    // Draw the rodWire (don't check for collisions in fish get mode)
+    color("light_red");
+    line(rod.end, vec(rod.end).addWithAngle(rod.angle, rod.length), 2)
+  } else {
+    // In fishing mode. Hold to extend, release to retract
+
+    if (input.isPressed) {
+      //Wire Extend
+      rod.length += G.ROD_EXTEND_SPEED;
+    } else {
+      //Wire Retract
+      rod.length += (G.ROD_LENGTH - rod.length) * 0.5;
+
+      //Wire Swining
+      if(rod.angle < turnaround) {
+        turnaround = 2.5;
+        rod.angle += 0.03;
+      }
+      else {
+        turnaround = .3;
+        rod.angle -= 0.03;
+      }
+      if(rod.angle >= 2.5 || rod.angle <= .3) {
+        rod.length = 0;
+      }
+    }
+
+    //Draw rodwire and check for collisions
+    feesh.forEach((f) =>  checkFishCol(f));
+  }
 }
 
 // Draw all scene (non-gameplay) components
@@ -269,6 +320,23 @@ function drawScene() {
 }
 
 /**
+ * Draws the rodWire and checks if it hit the specified fish
+ * @param { Fish } fish
+ */
+function checkFishCol(fish) {
+  const SPRITE = fish.sprite;
+  color("light_red");
+  const isCollidingWithFish = line(rod.end, rod.hook, 2).isColliding.char[SPRITE];
+
+  if(isCollidingWithFish) {
+    rod.hasFish = true;
+    rod.heldFish = fish;
+    rod.angle = rod.end.angleTo(fish.pos);
+    rod.length = Math.sqrt((Math.pow(fish.pos.x - rod.end.x, 2) + (Math.pow(fish.pos.y - rod.end.y, 2))));
+  }
+}
+
+/**
  * Creates a fish
  * @param {string} sprite 
  * @param {number} level 
@@ -277,7 +345,7 @@ function drawScene() {
 function makeFish(sprite, level) {
   return {
     pos: vec(G.WIDTH / 2, G.FISH_LEVELS[level]),
-    speed: (level + 1) / 4,
+    speed: (level + 1) / 8,
     mirrored: (rnd() < 0.5) ? -1 : 1,
     sprite: sprite
   }
