@@ -332,10 +332,22 @@ function checkFishCol(fish) {
   const isCollidingWithFish = line(rod.end, rod.hook, 2).isColliding.char[SPRITE];
 
   if(isCollidingWithFish) {
-    rod.hasFish = true;
-    rod.heldFish = fish;
     rod.angle = rod.end.angleTo(fish.pos);
     rod.length = Math.sqrt((Math.pow(fish.pos.x - rod.end.x, 2) + (Math.pow(fish.pos.y - rod.end.y, 2))));
+    if(input.isJustPressed) {
+      rod.hasFish = true;
+      rod.heldFish = fish;
+      rod.angle = rod.end.angleTo(fish.pos);
+      rod.length = Math.sqrt((Math.pow(fish.pos.x - rod.end.x, 2) + (Math.pow(fish.pos.y - rod.end.y, 2))));
+    }
+    else if (ticks >= 200){
+      rod.hasFish = false;
+      rod.heldFish = null;
+      rod.length = 0;
+      ticks = 0;
+    }
+    //rod.hasFish = true;
+    //rod.heldFish = fish;
   }
 }
 
