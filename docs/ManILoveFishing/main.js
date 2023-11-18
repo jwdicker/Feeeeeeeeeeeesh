@@ -2,8 +2,8 @@ title = "I Love Fishing";
 
 description = `
 Hold to cast,
-release to
-reel in
+press quickly
+to reel in
 `;
 
 characters = [
@@ -185,6 +185,7 @@ function update() {
   
   // Draw the scene
   drawScene();
+  if (input.isJustPressed) ticks = 0;
 
   // Move and draw the fish
   feesh.forEach((f) => {
@@ -340,11 +341,10 @@ function checkFishCol(fish) {
       rod.angle = rod.end.angleTo(fish.pos);
       rod.length = Math.sqrt((Math.pow(fish.pos.x - rod.end.x, 2) + (Math.pow(fish.pos.y - rod.end.y, 2))));
     }
-    else if (ticks >= 200){
+    else if (ticks >= 125){
       rod.hasFish = false;
       rod.heldFish = null;
       rod.length = 0;
-      ticks = 0;
     }
     //rod.hasFish = true;
     //rod.heldFish = fish;
